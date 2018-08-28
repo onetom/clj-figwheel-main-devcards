@@ -1,3 +1,5 @@
-^{:watch-dirs ["src" "test"]
-  :css-dirs   ["resources/public"]}
-{:main app.core}
+^{:watch-dirs       ["src" "test"]
+  :css-dirs         ["resources/public"]
+  :extra-main-files {:cards {:main app.cards}}}
+{:main     app.core
+ :devcards true}

@@ -1,6 +1,6 @@
 # Clojure CLI + `figwheel.main` + `devcards` with `:extra-main-files`
 
-## Clojure with Nix
+## Clojure setup with the Nix package manager
 
 First to have a more reproducible Clojure environment across macOS and Linux,
 without polluting your host OS, we can harness the power of the
@@ -30,7 +30,7 @@ user=>
 ```
 
 
-## Clojure/ClojureScript
+## Clojure/ClojureScript setup
 
 ```
 echo '{:deps {org.clojure/clojure       {:mvn/version "1.9.0"}' > deps.edn
@@ -55,7 +55,7 @@ cljs.user=> *clojurescript-version*
 "1.10.339"
 ```
 
-## figwheel.main
+## `figwheel.main` for automatic ClojureScript recompilation, hot-reload and REPL
 
 Detailed instructions for various environments can be found via
 https://figwheel.org, but here come the specifics for our setup.
@@ -63,7 +63,7 @@ https://figwheel.org, but here come the specifics for our setup.
 Add `com.bhauman/figwheel-main {:mvn/version "0.1.8"}` to `deps.edn`
 and start a ClojureScript REPL using an alias for a convenience:
 
-```
+```edn
 {:deps    {org.clojure/clojure       {:mvn/version "1.9.0"}
            org.clojure/clojurescript {:mvn/version "1.10.339"}
            com.bhauman/figwheel-main {:mvn/version "0.1.8"}}
@@ -120,3 +120,43 @@ The `<body>` of `index.html`:
 <div id="app"> </div>
 <script src="cljs-out/dev-main.js"></script>
 ```
+
+
+## `devcards`, the "interactive visual REPL"
+
+Documentation and source code: https://github.com/bhauman/devcards
+
+Add `devcards {:mvn/version "0.2.5"}}` to the `deps.edn`.
+
+Modify the `dev.cljs.edn` to signal figwheel the presence of `devcards`
+and also use the `:extra-main-files` option to define an additional build
+and call it `cards`.
+
+```
+^{:watch-dirs       ["src" "test"]
+  :css-dirs         ["resources/public"]
+  :extra-main-files {:cards {:main app.cards}}}
+{:main     app.core
+ :devcards true}
+```
+
+We also need an main entry point for devcards, where we can initialize it.
+To this end we can create an `app.cards` namespace:
+
+```
+(ns app.cards
+  (:require
+    [devcards.core]
+    [app.core :as app])
+  (:require-macros
+    [cljs.test :refer [is testing]]
+    [devcards.core :refer [defcard deftest dom-node]]))
+
+(devcards.core/start-devcard-ui!)
+```
+
+Now we can reach our cards under http://localhost:9500/figwheel-extra-main/cards
+by default, as documented here: https://figwheel.org/docs/extra_mains.html.
+
+After restarting our `clj -A:dev` process of course, so it can pick up the
+`devcards` dependency.
