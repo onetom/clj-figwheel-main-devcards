@@ -99,3 +99,24 @@ cljs.user=>
 ```
 
 and browser window being opened at http://localhost:9500.
+
+In an actual application we want to have our custom `index.html` and `app.css`
+which gets reloaded and we also want to control which namespace should start
+our application, so we can create a `dev.cljs.edn` ClojureScript compiler
+configuration file, which `figwheel.main` will consider using the `--build dev`
+option.
+
+`dev.cljs.edn`:
+
+```
+^{:watch-dirs ["src" "test"]
+  :css-dirs   ["resources/public"]}
+{:main app.core}
+```
+
+The `<body>` of `index.html`:
+
+```
+<div id="app"> </div>
+<script src="cljs-out/dev-main.js"></script>
+```

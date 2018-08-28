@@ -1,0 +1,3 @@
+^{:watch-dirs ["src" "test"]
+  :css-dirs   ["resources/public"]}
+{:main app.core}
