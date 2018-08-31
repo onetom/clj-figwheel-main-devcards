@@ -4,11 +4,11 @@
 
 First to have a more reproducible Clojure environment across macOS and Linux,
 without polluting your host OS, we can harness the power of the
-[Nix package manager](https://nixos.org/nix/), so install that first.
+[Nix package manager](https://nixos.org/nix/), so go and install that first.
 
 Then, if we create a `shell.nix` file:
 
-```
+```nix
 with import <nixpkgs> {};
 mkShell {
     buildInputs = [ clojure ];
@@ -16,11 +16,11 @@ mkShell {
 ```
 
 and run
-```
+```bash
 nix-shell
 ```
 
-it will download a stable Java environment and Clojure CLI tools and open a
+it will download the latest stable Java environment and Clojure CLI tools and open a
 `bash` process where `clojure` and `clj` are available:
 
 ```
@@ -29,21 +29,30 @@ Clojure 1.9.0
 user=>
 ```
 
+To upgrade your environment you can update your system
+[channel](https://nixos.org/nixpkgs/download.html):
+
+```bash
+sudo -i nix-channel --update
+```
+
+Then restarting your `nix-shell` process should download newer versions
+of Clojure and its dependencies.
 
 ## Clojure/ClojureScript setup
 
-```
+```bash
 echo '{:deps {org.clojure/clojure       {:mvn/version "1.9.0"}' > deps.edn
 echo '        org.clojure/clojurescript {:mvn/version "1.10.339"}}}' >> deps.edn
 ```
 
-Latest ClojureScript version can be obtained from
+The version number of the latest ClojureScript an be obtained from
 https://github.com/clojure/clojurescript/blob/master/changes.md
 
 Latest Clojure version can be found at
 [https://search.maven.org/search?q=g:org.clojure%20AND%20a:clojure&core=gav]
 
-Verify that it worked:
+Download and verify that we indeed run the right dependencies:
 
 ```
 [nix-shell:~/github.com/onetom/clj-figwheel-main-devcards]$ clj -e '*clojure-version*'
@@ -61,7 +70,7 @@ Detailed instructions for various environments can be found via
 https://figwheel.org, but here come the specifics for our setup.
 
 Add `com.bhauman/figwheel-main {:mvn/version "0.1.8"}` to `deps.edn`
-and start a ClojureScript REPL using an alias for a convenience:
+and start a ClojureScript REPL using an alias for convenience:
 
 ```edn
 {:deps    {org.clojure/clojure       {:mvn/version "1.9.0"}
@@ -70,7 +79,7 @@ and start a ClojureScript REPL using an alias for a convenience:
  :aliases {:dev {:main-opts ["--main" "figwheel.main"]}}}
 ```
 
-The result should be:
+The result should be something like this:
 ```
 [nix-shell:~/github.com/onetom/clj-figwheel-main-devcards]$ clj -A:dev
 [Figwheel] Compiling build figwheel-default-repl-build to "/var/folders/sp/dp9j0mxs3b3c_3g6sfs_7qwm0000gn/T/figwheel7528594557452178121repl/public/cljs-out/main.js"
@@ -98,25 +107,36 @@ ClojureScript 1.10.339
 cljs.user=>
 ```
 
-and browser window being opened at http://localhost:9500.
+and a browser window should be opened pointing to http://localhost:9500.
 
-In an actual application we want to have our custom `index.html` and `app.css`
-which gets reloaded and we also want to control which namespace should start
-our application, so we can create a `dev.cljs.edn` ClojureScript compiler
-configuration file, which `figwheel.main` will consider using the `--build dev`
-option.
+In an actual application we want to have our custom `index.html` and
+hot-reloading `app.css` and we also want to control which namespace should
+kickstart our application. To achieve this we can create a `dev.cljs.edn`
+configuration file, containing
+[ClojureScript compiler options](http://www.clojurescript.org/reference/compiler-options).
+We can tell `figwheel.main` to use these compiler settings by appending
+the `--build dev` command-line option to the `:main-opts` of our `:dev` alias.
 
 `dev.cljs.edn`:
 
-```
+```edn
 ^{:watch-dirs ["src" "test"]
   :css-dirs   ["resources/public"]}
 {:main app.core}
 ```
 
+`deps.edn`:
+
+```edn
+{:deps    {org.clojure/clojure       {:mvn/version "1.9.0"}
+           org.clojure/clojurescript {:mvn/version "1.10.339"}
+           com.bhauman/figwheel-main {:mvn/version "0.1.8"}}
+ :aliases {:dev {:main-opts ["--main" "figwheel.main" "--build" "dev"]}}}
+```
+
 The `<body>` of `index.html`:
 
-```
+```html
 <div id="app"> </div>
 <script src="cljs-out/dev-main.js"></script>
 ```
@@ -132,7 +152,7 @@ Modify the `dev.cljs.edn` to signal figwheel the presence of `devcards`
 and also use the `:extra-main-files` option to define an additional build
 and call it `cards`.
 
-```
+```edn
 ^{:watch-dirs       ["src" "test"]
   :css-dirs         ["resources/public"]
   :extra-main-files {:cards {:main app.cards}}}
@@ -140,23 +160,27 @@ and call it `cards`.
  :devcards true}
 ```
 
-We also need an main entry point for devcards, where we can initialize it.
+We also need an main entry point for devcards, where we can initialize devcards.
 To this end we can create an `app.cards` namespace:
 
-```
+```clojure
 (ns app.cards
   (:require
     [devcards.core]
-    [app.core :as app])
-  (:require-macros
-    [cljs.test :refer [is testing]]
-    [devcards.core :refer [defcard deftest dom-node]]))
+    ; Load namespaces with `defcard` or `deftest` definitions
+    [app.core]))
 
 (devcards.core/start-devcard-ui!)
 ```
 
-Now we can reach our cards under http://localhost:9500/figwheel-extra-main/cards
-by default, as documented here: https://figwheel.org/docs/extra_mains.html.
+Restarting our `clj -A:dev` process and it should download the `devcards`
+dependency and build an extra entry-point for devcards.
 
-After restarting our `clj -A:dev` process of course, so it can pick up the
-`devcards` dependency.
+There is an auto-generated HTML page hosting this devcards entry point under
+http://localhost:9500/figwheel-extra-main/cards by default, as documented here:
+https://figwheel.org/docs/extra_mains.html.
+
+## Troubleshooting
+
+If something doesn't work as expected, make sure you check the browser console,
+because it's likely to contain errors.
