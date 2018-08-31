@@ -1,9 +1,7 @@
 (ns app.cards
   (:require
     [devcards.core]
-    [app.core :as app])
-  (:require-macros
-    [cljs.test :refer [is testing]]
-    [devcards.core :refer [defcard deftest dom-node]]))
+    ; Load namespaces with cards
+    [app.core]))
 
 (devcards.core/start-devcard-ui!)
